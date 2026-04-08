@@ -10,9 +10,7 @@
 
 
 
-/* ============================================================
-   FONCTIONS DE BASE
-   ============================================================ */
+
 
 void lire_caractere(t_Parseur* ceci){
     int c = fgetc(ceci->le_fichier);
@@ -52,9 +50,7 @@ void passer_espaces(t_Parseur* ceci){
     }
 }
 
-/* ============================================================
-   OUTILS POUR BALISES
-   ============================================================ */
+
 
 void consommer_chaine(t_Parseur* ceci, const char* s) {
     while (*s) {
@@ -96,9 +92,6 @@ void balise_br(t_Parseur* ceci) {
     passer_espaces(ceci);
 }
 
-/* ============================================================
-   LOOKAHEAD
-   ============================================================ */
 
 int lookahead_balise(t_Parseur* ceci, const char* nom) {
     if (ceci->le_caractere != '<')
@@ -130,9 +123,7 @@ int lookahead_balise(t_Parseur* ceci, const char* nom) {
     return strcmp(buffer, nom) == 0;
 }
 
-/* ============================================================
-   NON-TERMINAUX
-   ============================================================ */
+
 
 Noeud* texte_enrichi(t_Parseur* ceci) {
     passer_espaces(ceci);

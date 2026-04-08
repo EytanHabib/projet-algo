@@ -9,7 +9,7 @@ typedef struct {
     int   le_caractere;
 } t_Parseur;
 
-/* Fonctions de base */
+
 void amorcer(t_Parseur* ceci, char* nom_fichier);
 void terminer(t_Parseur* ceci);
 void lire_caractere(t_Parseur* ceci);
@@ -17,10 +17,10 @@ void consommer(t_Parseur* ceci, char attendu);
 void passer_espaces(t_Parseur* ceci);
 int  est_en_fin(const t_Parseur* ceci);
 
-/* Analyseur */
+
 Noeud* texte_enrichi(t_Parseur* ceci);
 
-/* Non-terminaux */
+
 Noeud* document(t_Parseur* ceci);
 Noeud* annexes(t_Parseur* ceci);
 Noeud* contenu(t_Parseur* ceci);

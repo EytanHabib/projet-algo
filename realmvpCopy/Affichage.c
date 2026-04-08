@@ -7,9 +7,7 @@
 
 #define LARGEUR_MAX 50
 
-/* ------------------------------------------------------------
-   OUTILS D'ÉCRITURE
-   ------------------------------------------------------------ */
+
 
 void ligne_vide(int largeur) {
     for (int i = 0; i < largeur; i++) putchar(' ');
@@ -28,9 +26,6 @@ void ecrire_texte(const char* txt, int largeur) {
     }
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE DES MOTS
-   ------------------------------------------------------------ */
 
 void afficher_mot(Noeud* n, char* buffer, int* pos, int largeur) {
     if (*pos + (int)strlen(n->texte) + 1 > largeur)
@@ -52,9 +47,7 @@ void afficher_br(char* buffer, int* pos) {
     *pos = 0;
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE DU TEXTE
-   ------------------------------------------------------------ */
+
 
 void afficher_texte(Noeud* n, int largeur) {
     char buffer[256];
@@ -67,7 +60,7 @@ void afficher_texte(Noeud* n, int largeur) {
             afficher_mot(c, buffer, &pos, largeur);
 
         else if (strcmp(c->type, "important") == 0) {
-            // IMPORTANT = majuscules
+            
             for (int j = 0; j < c->nb_enfants; j++) {
                 Noeud* m = c->enfants[j];
                 char tmp[128];
@@ -89,12 +82,10 @@ void afficher_texte(Noeud* n, int largeur) {
     }
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE DES TITRES
-   ------------------------------------------------------------ */
+
 
 void afficher_titre(Noeud* n, int largeur) {
-    // saut de ligne avant
+   
     putchar('\n');
 
     Noeud* txt = n->enfants[0];
@@ -116,9 +107,7 @@ void afficher_titre(Noeud* n, int largeur) {
     putchar('\n');
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE DES LISTES
-   ------------------------------------------------------------ */
+
 
 void afficher_item(Noeud* n, int largeur, int indent);
 
@@ -128,12 +117,12 @@ void afficher_liste(Noeud* n, int largeur, int indent) {
 }
 
 void afficher_item(Noeud* n, int largeur, int indent) {
-    // préfixe "# "
+    
     for (int i = 0; i < indent; i++) putchar(' ');
     putchar('#');
     putchar(' ');
 
-    // contenu de l’item
+   
     for (int i = 0; i < n->nb_enfants; i++) {
         Noeud* c = n->enfants[i];
 
@@ -161,9 +150,7 @@ void afficher_item(Noeud* n, int largeur, int indent) {
     putchar('\n');
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE DU CONTENU
-   ------------------------------------------------------------ */
+
 
 void afficher_contenu(Noeud* n, int largeur) {
     for (int i = 0; i < n->nb_enfants; i++) {
@@ -183,19 +170,17 @@ void afficher_contenu(Noeud* n, int largeur) {
     }
 }
 
-/* ------------------------------------------------------------
-   AFFICHAGE GLOBAL
-   ------------------------------------------------------------ */
+
 
 void afficher_document(Noeud* racine) {
     Noeud* doc = racine;
     Noeud* contenu_doc = doc->enfants[0];
     Noeud* annexes = doc->enfants[1];
 
-    // DOCUMENT
+    
     afficher_contenu(contenu_doc, LARGEUR_MAX);
 
-    // ANNEXES
+    
     for (int i = 0; i < annexes->nb_enfants; i++) {
         putchar('\n');
         afficher_contenu(annexes->enfants[i]->enfants[0], LARGEUR_MAX);
