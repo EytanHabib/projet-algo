@@ -1,0 +1,638 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include "Affichage.h"
+#include "Arbre.h"
+
+#define LARGEUR_MAX 50
+
+/* ------------------------------------------------------------
+   OUTILS D'ÉCRITURE
+   ------------------------------------------------------------ */
+
+void ligne_vide(int largeur) {
+    for (int i = 0; i < largeur; i++) putchar(' ');
+    putchar('\n');
+}
+
+void ecrire_texte(const char* txt, int largeur) {
+    int len = strlen(txt);
+    int pos = 0;
+
+    while (pos < len) {
+        int n = (len - pos < largeur ? len - pos : largeur);
+        fwrite(txt + pos, 1, n, stdout);
+        putchar('\n');
+        pos += n;
+    }
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE DES MOTS
+   ------------------------------------------------------------ */
+
+void afficher_mot(Noeud* n, char* buffer, int* pos, int largeur) {
+    if (*pos + (int)strlen(n->texte) + 1 > largeur)
+    {
+        buffer[*pos] = '\0';
+        printf("%s\n", buffer);
+        *pos = 0;
+    }
+
+    if (*pos != 0) buffer[(*pos)++] = ' ';
+
+    strcpy(buffer + *pos, n->texte);
+    *pos += strlen(n->texte);
+}
+
+void afficher_br(char* buffer, int* pos) {
+    buffer[*pos] = '\0';
+    printf("%s\n", buffer);
+    *pos = 0;
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE DU TEXTE
+   ------------------------------------------------------------ */
+
+void afficher_texte(Noeud* n, int largeur) {
+    char buffer[256];
+    int pos = 0;
+
+    for (int i = 0; i < n->nb_enfants; i++) {
+        Noeud* c = n->enfants[i];
+
+        if (strcmp(c->type, "mot") == 0)
+            afficher_mot(c, buffer, &pos, largeur);
+
+        else if (strcmp(c->type, "important") == 0) {
+            // IMPORTANT = majuscules
+            for (int j = 0; j < c->nb_enfants; j++) {
+                Noeud* m = c->enfants[j];
+                char tmp[128];
+                strcpy(tmp, m->texte);
+                for (int k = 0; tmp[k]; k++) tmp[k] = toupper(tmp[k]);
+
+                Noeud faux = { "mot", tmp, NULL, 0 };
+                afficher_mot(&faux, buffer, &pos, largeur);
+            }
+        }
+
+        else if (strcmp(c->type, "br") == 0)
+            afficher_br(buffer, &pos);
+    }
+
+    if (pos > 0) {
+        buffer[pos] = '\0';
+        printf("%s\n", buffer);
+    }
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE DES TITRES
+   ------------------------------------------------------------ */
+
+void afficher_titre(Noeud* n, int largeur) {
+    // saut de ligne avant
+    putchar('\n');
+
+    Noeud* txt = n->enfants[0];
+    char buffer[256] = {0};
+    int pos = 0;
+
+    for (int i = 0; i < txt->nb_enfants; i++) {
+        Noeud* m = txt->enfants[i];
+        if (strcmp(m->type, "mot") == 0) {
+            if (pos != 0) buffer[pos++] = ' ';
+            for (int k = 0; m->texte[k]; k++)
+                buffer[pos++] = toupper(m->texte[k]);
+        }
+    }
+
+    buffer[pos] = '\0';
+    ecrire_texte(buffer, largeur);
+
+    putchar('\n');
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE DES LISTES
+   ------------------------------------------------------------ */
+
+void afficher_item(Noeud* n, int largeur, int indent);
+
+void afficher_liste(Noeud* n, int largeur, int indent) {
+    for (int i = 0; i < n->nb_enfants; i++)
+        afficher_item(n->enfants[i], largeur, indent);
+}
+
+void afficher_item(Noeud* n, int largeur, int indent) {
+    // préfixe "# "
+    for (int i = 0; i < indent; i++) putchar(' ');
+    putchar('#');
+    putchar(' ');
+
+    // contenu de l’item
+    for (int i = 0; i < n->nb_enfants; i++) {
+        Noeud* c = n->enfants[i];
+
+        if (strcmp(c->type, "mot") == 0)
+            printf("%s ", c->texte);
+
+        else if (strcmp(c->type, "important") == 0) {
+            for (int j = 0; j < c->nb_enfants; j++) {
+                Noeud* m = c->enfants[j];
+                for (int k = 0; m->texte[k]; k++)
+                    putchar(toupper(m->texte[k]));
+                putchar(' ');
+            }
+        }
+
+        else if (strcmp(c->type, "br") == 0)
+            putchar('\n');
+
+        else if (strcmp(c->type, "liste") == 0) {
+            putchar('\n');
+            afficher_liste(c, largeur, indent + 2);
+        }
+    }
+
+    putchar('\n');
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE DU CONTENU
+   ------------------------------------------------------------ */
+
+void afficher_contenu(Noeud* n, int largeur) {
+    for (int i = 0; i < n->nb_enfants; i++) {
+        Noeud* c = n->enfants[i];
+
+        if (strcmp(c->type, "titre") == 0)
+            afficher_titre(c, largeur);
+
+        else if (strcmp(c->type, "texte") == 0)
+            afficher_texte(c, largeur);
+
+        else if (strcmp(c->type, "liste") == 0)
+            afficher_liste(c, largeur, 0);
+
+        else if (strcmp(c->type, "section") == 0)
+            afficher_contenu(c->enfants[0], largeur - 2);
+    }
+}
+
+/* ------------------------------------------------------------
+   AFFICHAGE GLOBAL
+   ------------------------------------------------------------ */
+
+void afficher_document(Noeud* racine) {
+    Noeud* doc = racine;
+    Noeud* contenu_doc = doc->enfants[0];
+    Noeud* annexes = doc->enfants[1];
+
+    // DOCUMENT
+    afficher_contenu(contenu_doc, LARGEUR_MAX);
+
+    // ANNEXES
+    for (int i = 0; i < annexes->nb_enfants; i++) {
+        putchar('\n');
+        afficher_contenu(annexes->enfants[i]->enfants[0], LARGEUR_MAX);
+        printf("|\n");
+    }
+}
+#define _POSIX_C_SOURCE 200809L
+#include <string.h>
+#include <stdlib.h>
+#include <string.h>
+#include "Arbre.h"
+
+Noeud* creer_noeud(const char* type) {
+    Noeud* n = malloc(sizeof(Noeud));
+    n->type = strdup(type);
+    n->texte = NULL;
+    n->enfants = NULL;
+    n->nb_enfants = 0;
+    return n;
+}
+
+void ajouter_enfant(Noeud* parent, Noeud* enfant) {
+    parent->enfants = realloc(parent->enfants,
+                              sizeof(Noeud*) * (parent->nb_enfants + 1));
+    parent->enfants[parent->nb_enfants++] = enfant;
+}
+
+void liberer_arbre(Noeud* n) {
+    if (!n) return;
+    for (int i = 0; i < n->nb_enfants; i++)
+        liberer_arbre(n->enfants[i]);
+    free(n->enfants);
+    free(n->type);
+    if (n->texte) free(n->texte);
+    free(n);
+}
+#ifndef ARBRE_H
+#define ARBRE_H
+
+typedef struct Noeud {
+    char* type;
+    char* texte;
+    struct Noeud** enfants;
+    int nb_enfants;
+} Noeud;
+
+Noeud* creer_noeud(const char* type);
+void ajouter_enfant(Noeud* parent, Noeud* enfant);
+void liberer_arbre(Noeud* n);
+
+#endif
+#include <stdio.h>
+#include "Parseur.h"
+#include "Arbre.h"
+#include "Affichage.h"
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        printf("Usage: %s fichier.nanoml\n", argv[0]);
+        return 1;
+    }
+
+    t_Parseur p;
+    amorcer(&p, argv[1]);
+
+    Noeud* racine = texte_enrichi(&p);
+
+    terminer(&p);
+
+    afficher_document(racine);
+
+    liberer_arbre(racine);
+    return 0;
+}
+#define _POSIX_C_SOURCE 200809L
+#include <string.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include "Parseur.h"
+#include "Arbre.h"
+
+
+
+
+/* ============================================================
+   FONCTIONS DE BASE
+   ============================================================ */
+
+void lire_caractere(t_Parseur* ceci){
+    int c = fgetc(ceci->le_fichier);
+    ceci->le_caractere = (c == EOF ? EOF : c);
+}
+
+int est_en_fin(const t_Parseur* ceci){
+    return ceci->le_caractere == EOF;
+}
+
+void consommer(t_Parseur* ceci, char attendu) {
+    if (ceci->le_caractere != attendu) {
+        fprintf(stderr, "Erreur: '%c' attendu, trouvé '%c'\n",
+                attendu, ceci->le_caractere);
+        exit(EXIT_FAILURE);
+    }
+    lire_caractere(ceci);
+}
+
+void terminer(t_Parseur* ceci){
+    if (ceci->le_fichier)
+        fclose(ceci->le_fichier);
+}
+
+void amorcer(t_Parseur* ceci, char* nom_fichier) {
+    ceci->le_fichier = fopen(nom_fichier, "r");
+    if (!ceci->le_fichier) {
+        fprintf(stderr, "Impossible d'ouvrir %s\n", nom_fichier);
+        exit(EXIT_FAILURE);
+    }
+    lire_caractere(ceci);
+}
+
+void passer_espaces(t_Parseur* ceci){
+    while (ceci->le_caractere != EOF && isspace(ceci->le_caractere)) {
+        lire_caractere(ceci);
+    }
+}
+
+/* ============================================================
+   OUTILS POUR BALISES
+   ============================================================ */
+
+void consommer_chaine(t_Parseur* ceci, const char* s) {
+    while (*s) {
+        if (ceci->le_caractere != *s) {
+            fprintf(stderr, "Erreur: '%c' attendu dans \"%s\"\n", *s, s);
+            exit(EXIT_FAILURE);
+        }
+        lire_caractere(ceci);
+        s++;
+    }
+}
+
+void balise_ouvrante(t_Parseur* ceci, const char* nom) {
+    passer_espaces(ceci);
+    consommer(ceci, '<');
+    consommer_chaine(ceci, nom);
+    passer_espaces(ceci);
+    consommer(ceci, '>');
+    passer_espaces(ceci);
+}
+
+void balise_fermante(t_Parseur* ceci, const char* nom) {
+    passer_espaces(ceci);
+    consommer(ceci, '<');
+    consommer(ceci, '/');
+    consommer_chaine(ceci, nom);
+    passer_espaces(ceci);
+    consommer(ceci, '>');
+    passer_espaces(ceci);
+}
+
+void balise_br(t_Parseur* ceci) {
+    passer_espaces(ceci);
+    consommer(ceci, '<');
+    consommer_chaine(ceci, "br");
+    if (ceci->le_caractere == '/')
+        consommer(ceci, '/');
+    consommer(ceci, '>');
+    passer_espaces(ceci);
+}
+
+/* ============================================================
+   LOOKAHEAD
+   ============================================================ */
+
+int lookahead_balise(t_Parseur* ceci, const char* nom) {
+    if (ceci->le_caractere != '<')
+        return 0;
+
+    long pos = ftell(ceci->le_fichier);
+    int c0 = ceci->le_caractere;
+
+    int c = fgetc(ceci->le_fichier);
+
+    if (c == '/') {
+        fseek(ceci->le_fichier, pos, SEEK_SET);
+        ceci->le_caractere = c0;
+        return 0;
+    }
+
+    char buffer[64];
+    int i = 0;
+
+    while (c != EOF && isalpha(c) && i < 63) {
+        buffer[i++] = c;
+        c = fgetc(ceci->le_fichier);
+    }
+    buffer[i] = '\0';
+
+    fseek(ceci->le_fichier, pos, SEEK_SET);
+    ceci->le_caractere = c0;
+
+    return strcmp(buffer, nom) == 0;
+}
+
+/* ============================================================
+   NON-TERMINAUX
+   ============================================================ */
+
+Noeud* texte_enrichi(t_Parseur* ceci) {
+    passer_espaces(ceci);
+
+    Noeud* doc = document(ceci);
+    Noeud* ann = annexes(ceci);
+
+    ajouter_enfant(doc, ann);
+    return doc;
+}
+
+Noeud* document(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "document");
+
+    Noeud* n = creer_noeud("document");
+    Noeud* c = contenu(ceci);
+    ajouter_enfant(n, c);
+
+    balise_fermante(ceci, "document");
+    return n;
+}
+
+Noeud* annexes(t_Parseur* ceci) {
+    Noeud* n = creer_noeud("annexes");
+
+    passer_espaces(ceci);
+    while (lookahead_balise(ceci, "annexe")) {
+        ajouter_enfant(n, annexe(ceci));
+        passer_espaces(ceci);
+    }
+
+    return n;
+}
+
+
+Noeud* contenu(t_Parseur* ceci) {
+    Noeud* n = creer_noeud("contenu");
+
+    passer_espaces(ceci);
+
+    while (!est_en_fin(ceci)) {
+        passer_espaces(ceci);
+
+        if (lookahead_balise(ceci, "section"))
+            ajouter_enfant(n, section(ceci));
+
+        else if (lookahead_balise(ceci, "titre"))
+            ajouter_enfant(n, titre(ceci));
+
+        else if (lookahead_balise(ceci, "liste"))
+            ajouter_enfant(n, liste(ceci));
+
+        else if (lookahead_balise(ceci, "important") ||
+                 lookahead_balise(ceci, "br") ||
+                 ceci->le_caractere != '<')
+            ajouter_enfant(n, mot_enrichi(ceci));
+
+        else break;
+
+        passer_espaces(ceci);
+    }
+
+    return n;
+}
+Noeud* annexe(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "annexe");
+
+    Noeud* n = creer_noeud("annexe");
+    ajouter_enfant(n, contenu(ceci));
+
+    balise_fermante(ceci, "annexe");
+    return n;
+}
+Noeud* texte(t_Parseur* ceci) {
+    Noeud* n = creer_noeud("texte");
+
+    passer_espaces(ceci);
+    while (!est_en_fin(ceci)) {
+        passer_espaces(ceci);
+
+        if (lookahead_balise(ceci, "important") ||
+            lookahead_balise(ceci, "br") ||
+            ceci->le_caractere != '<')
+            ajouter_enfant(n, mot_enrichi(ceci));
+        else break;
+    }
+
+    return n;
+}
+Noeud* item(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "item");
+
+    Noeud* n = creer_noeud("item");
+
+    passer_espaces(ceci);
+    while (!est_en_fin(ceci)) {
+        passer_espaces(ceci);
+
+        if (lookahead_balise(ceci, "liste"))
+            ajouter_enfant(n, liste(ceci));
+        else if (lookahead_balise(ceci, "important") ||
+                 lookahead_balise(ceci, "br") ||
+                 ceci->le_caractere != '<')
+            ajouter_enfant(n, mot_enrichi(ceci));
+        else break;
+    }
+
+    balise_fermante(ceci, "item");
+    return n;
+}
+Noeud* mot_important(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "important");
+
+    Noeud* n = creer_noeud("important");
+
+    passer_espaces(ceci);
+    while (!est_en_fin(ceci) && ceci->le_caractere != '<') {
+        ajouter_enfant(n, mot_simple(ceci));
+        passer_espaces(ceci);
+    }
+
+    balise_fermante(ceci, "important");
+    return n;
+}
+Noeud* mot_simple(t_Parseur* ceci) {
+    passer_espaces(ceci);
+
+    char buffer[256];
+    int i = 0;
+
+    while (!est_en_fin(ceci) &&
+           ceci->le_caractere != '<' &&
+           !isspace(ceci->le_caractere)) {
+        buffer[i++] = ceci->le_caractere;
+        lire_caractere(ceci);
+    }
+    buffer[i] = '\0';
+
+    passer_espaces(ceci);
+
+    Noeud* n = creer_noeud("mot");
+    n->texte = strdup(buffer);
+    return n;
+}
+
+Noeud* section(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "section");
+
+    Noeud* n = creer_noeud("section");
+    ajouter_enfant(n, contenu(ceci));
+
+    balise_fermante(ceci, "section");
+    return n;
+}
+
+
+Noeud* titre(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "titre");
+
+    Noeud* n = creer_noeud("titre");
+    ajouter_enfant(n, texte(ceci));
+
+    balise_fermante(ceci, "titre");
+    return n;
+}
+Noeud* liste(t_Parseur* ceci) {
+    balise_ouvrante(ceci, "liste");
+
+    Noeud* n = creer_noeud("liste");
+
+    passer_espaces(ceci);
+    while (lookahead_balise(ceci, "item")) {
+        ajouter_enfant(n, item(ceci));
+        passer_espaces(ceci);
+    }
+
+    balise_fermante(ceci, "liste");
+    return n;
+}
+Noeud* mot_enrichi(t_Parseur* ceci) {
+    passer_espaces(ceci);
+
+    if (lookahead_balise(ceci, "important"))
+        return mot_important(ceci);
+
+    else if (lookahead_balise(ceci, "br")) {
+        balise_br(ceci);
+        return creer_noeud("br");
+    }
+
+    else
+        return mot_simple(ceci);
+}
+
+#ifndef P_PARSEUR_H
+#define P_PARSEUR_H
+
+#include <stdio.h>
+#include "Arbre.h"
+
+typedef struct {
+    FILE* le_fichier;
+    int   le_caractere;
+} t_Parseur;
+
+/* Fonctions de base */
+void amorcer(t_Parseur* ceci, char* nom_fichier);
+void terminer(t_Parseur* ceci);
+void lire_caractere(t_Parseur* ceci);
+void consommer(t_Parseur* ceci, char attendu);
+void passer_espaces(t_Parseur* ceci);
+int  est_en_fin(const t_Parseur* ceci);
+
+/* Analyseur */
+Noeud* texte_enrichi(t_Parseur* ceci);
+
+/* Non-terminaux */
+Noeud* document(t_Parseur* ceci);
+Noeud* annexes(t_Parseur* ceci);
+Noeud* contenu(t_Parseur* ceci);
+Noeud* annexe(t_Parseur* ceci);
+Noeud* section(t_Parseur* ceci);
+Noeud* titre(t_Parseur* ceci);
+Noeud* liste(t_Parseur* ceci);
+Noeud* item(t_Parseur* ceci);
+Noeud* texte(t_Parseur* ceci);
+Noeud* mot_enrichi(t_Parseur* ceci);
+Noeud* mot_simple(t_Parseur* ceci);
+Noeud* mot_important(t_Parseur* ceci);
+
+#endif
