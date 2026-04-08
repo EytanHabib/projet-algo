@@ -171,7 +171,14 @@ t_noeud* contenu(t_Parseur* parseur) {
         else if (!commence_par(parseur, "</document>") &&
                  !commence_par(parseur, "</section>") &&
                  !commence_par(parseur, "</annexe>")) {
+
             element = mot_enrichi(parseur);
+
+            // 🔥 CORRECTION : éviter boucle infinie
+            if (!element) {
+                lire_caractere(parseur);
+                continue;
+            }
         } else {
             break;
         }
@@ -299,8 +306,14 @@ t_noeud* texte(t_Parseur* parseur) {
            !commence_par(parseur, "</annexe>")) {
 
         t_noeud* mot = mot_enrichi(parseur);
-        if (mot) ajouter_enfant(noeud, mot);
 
+        if (!mot) {
+            // 🔥 IMPORTANT
+            lire_caractere(parseur);
+            continue;
+        }
+
+        ajouter_enfant(noeud, mot);
         sauter_espaces(parseur);
     }
 
@@ -346,7 +359,13 @@ t_noeud* mot_important(t_Parseur* parseur) {
 
     while (!commence_par(parseur, "</important>")) {
         t_noeud* mot = mot_simple(parseur);
-        if (!mot) break;
+
+        if (!mot) {
+            // 🔥 avance forcée
+            lire_caractere(parseur);
+            continue;
+        }
+
         ajouter_enfant(noeud, mot);
         sauter_espaces(parseur);
     }

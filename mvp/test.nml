@@ -1,0 +1,51 @@
+<document>
+
+<titre>
+Mon premier document
+</titre>
+
+<section>
+Ceci est une petite section avec un <important>mot important</important> dedans.
+<br/>
+Et une nouvelle ligne juste après.
+</section>
+
+<section>
+Voici une liste simple :
+<liste>
+<item>Premier élément</item>
+<item>Deuxième élément</item>
+<item>Troisième élément</item>
+</liste>
+</section>
+
+<section>
+Liste imbriquée :
+<liste>
+<item>
+<liste>
+<item>Un sous-élément</item>
+<item>Encore un autre</item>
+</liste>
+</item>
+<item>Élément principal suivant</item>
+</liste>
+</section>
+
+</document>
+
+<annexe>
+<section>
+Ceci est une annexe avec un <important>texte important</important>.
+</section>
+</annexe>
+
+<annexe>
+<section>
+Deuxième annexe.
+<liste>
+<item>Note 1</item>
+<item>Note 2</item>
+</liste>
+</section>
+</annexe>
